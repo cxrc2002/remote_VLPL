@@ -57,18 +57,6 @@ class TextEncoder(nn.Module):
 
         return x
 
-class LayerNorm(nn.LayerNorm):
-    def forward(self, x: torch.Tensor):
-        orig_type = x.dtype  
-        with autocast(enabled=True):  
-            x = x.to(torch.float32)  
-            ret = super().forward(x)  
-        return ret.to(orig_type)  
-    
-class QuickGELU(nn.Module):
-    def forward(self, x: torch.Tensor):
-        return x * torch.sigmoid(1.702 * x)
-
 class AttentionPool2d(nn.Module):
     def __init__(self, spacial_dim: int, embed_dim: int, num_heads: int, output_dim: int = None):
         super().__init__()
@@ -142,7 +130,7 @@ class Prompt_Argument(nn.Module):
         else:
             raise Exception("Something went wrong!")
         # x.shape (n, ctx_dim, 32)
-        x = x.permute(2, 1, 0)
+        x = x.permute(2, 0, 1)
         output = self.attpool(x)
          
         return output
@@ -257,7 +245,7 @@ class CustomCLIP(nn.Module):
         tokenized_prompts = tokenized_prompts.reshape((tokenized_prompts.size(0)*tokenized_prompts.size(1),tokenized_prompts.size(2)))  # (n_cls*4, *)
         text_features = self.text_encoder(prompts, tokenized_prompts)
         text_features = text_features / text_features.norm(dim=-1, keepdim=True)
-        text_features = text_features.reshape((text_features.size(0)//4, 4, text_features.size(1))) # (n_cls, 5, dim)
+        text_features = text_features.reshape((text_features.size(0)//5, 5, text_features.size(1))) # (n_cls, 5, dim)
 
         logits=[]
         logit_scale = self.logit_scale.exp()
